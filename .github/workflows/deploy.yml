@@ -1,4 +1,4 @@
-name: Deploy Express to OCI - 12 Aug, 2026
+name: Deploy Express to OCI
 
 on:
   push:
@@ -7,21 +7,13 @@ on:
       - t1___01-oct-2026
 
 jobs:
-  checkout:
-    name: Checkout Code
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-
   create-tag:
     name: Create Git Tag
     runs-on: ubuntu-latest
-    needs: checkout
+
     permissions:
       contents: write
+
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
 
@@ -35,26 +27,31 @@ jobs:
         id: tag
         run: |
           TAG="v$(date +'%Y.%m.%d-%H%M%S')"
+
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag $TAG
-          git push origin $TAG
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          git tag "$TAG"
+          git push origin "$TAG"
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: create-tag
+
     permissions:
       contents: write
-  
+
     steps:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.create-tag.outputs.tag }}
           generate_release_notes: true
-  
-  deploy-by-im:
+
+  deploy:
     name: Deploy via SSH
     runs-on: ubuntu-latest
     needs: create-tag
@@ -67,7 +64,16 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.PRIVATE_KEY }}
           port: 22
+
           script: |
+            set -e
+
             cd /home/${{ secrets.SSH_USERNAME }}/t1___01-oct-2026
-            git pull
+
+            echo "Deploying branch: ${{ github.ref_name }}"
+
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+
             docker compose up -d --build
