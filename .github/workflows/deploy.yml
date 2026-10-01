@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - t1___01-oct-2026
 
 jobs:
   checkout:
