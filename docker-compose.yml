@@ -1,0 +1,10 @@
+services:
+  app:
+    image: t1---01-oct-2026
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    container_name: im_cont
