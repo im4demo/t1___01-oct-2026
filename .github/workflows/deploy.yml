@@ -1,79 +1,31 @@
-name: Deploy Express to OCI
+name: Production Release
 
 on:
   push:
     branches:
-      - main
       - t1___01-oct-2026
 
+permissions:
+  contents: write
+
 jobs:
-  create-tag:
-    name: Create Git Tag
+  release:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Create tag
+      - name: Create Release Tag
         id: tag
-        run: |
-          TAG="v$(date +'%Y.%m.%d-%H%M%S')"
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.PRIVATE_KEY }}
 
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-
-          git tag "$TAG"
-          git push origin "$TAG"
-
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-
-  create-release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: create-tag
-
-    permissions:
-      contents: write
-
-    steps:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.create-tag.outputs.tag }}
+          tag_name: ${{ steps.tag.outputs.new_tag }}
+          name: Release ${{ steps.tag.outputs.new_tag }}
           generate_release_notes: true
-
-  deploy:
-    name: Deploy via SSH
-    runs-on: ubuntu-latest
-    needs: create-tag
-
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.PRIVATE_KEY }}
-          port: 22
-
-          script: |
-            set -e
-
-            cd /home/${{ secrets.SSH_USERNAME }}/t1___01-oct-2026
-
-            echo "Deploying branch: ${{ github.ref_name }}"
-
-            git fetch origin
-            git checkout ${{ github.ref_name }}
-            git pull origin ${{ github.ref_name }}
-
-            docker compose up -d --build
