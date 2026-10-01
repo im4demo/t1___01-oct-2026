@@ -4,7 +4,7 @@ import os from "os";
 const app = express();
 const PORT  = process.env.PORT || 8080;
 const DIR = 't1---01-oct-2026';
-const UPD = 'LOCAL-UPD-1 + GitActions - FINAL \n';
+const UPD = 'SERVER-UPD-6 + GitActions - FINAL \n';
 
 app.get('/', (req, res) => {
     // res.send(`Hello from Server - ${DIR} - ${UPD}`)
